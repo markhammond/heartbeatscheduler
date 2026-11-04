@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    name: Build, test and pack (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build HeartbeatScheduler.slnx -c Release
+
+      # A hang becomes a failed run with a dump (tests/Directory.Build.props), uploaded below.
+      - name: Test
+        run: dotnet test HeartbeatScheduler.slnx -c Release --no-build --results-directory TestResults
+
+      - name: Pack
+        if: matrix.os == 'ubuntu-latest'
+        run: dotnet pack HeartbeatScheduler.slnx -c Release --no-build -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: packages
+          path: artifacts/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/
+          if-no-files-found: ignore

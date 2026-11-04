@@ -1,0 +1,26 @@
+<Project>
+  <!-- Package metadata shared by every project in this repository. -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>Mark Hammond</Authors>
+    <Copyright>Copyright (c) 2026 Mark Hammond</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/markhammond/heartbeatscheduler/releases/tag/v$(Version)</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/markhammond/heartbeatscheduler</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/markhammond/heartbeatscheduler</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <!-- Debuggable from the package: symbols beside it (.snupkg), sources linked to the commit (Source Link, in the SDK). -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+</Project>

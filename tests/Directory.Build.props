@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <!-- A runaway enumerator or loop inside the library cannot be caught by a test-side guard. Turn any hang into a
+       failed run (with a dump) instead of a stalled CI job. Applies to every `dotnet test` here. -->
+  <PropertyGroup>
+    <VSTestBlameHang>true</VSTestBlameHang>
+    <VSTestBlameHangTimeout>3min</VSTestBlameHangTimeout>
+    <VSTestBlameHangDumpType>mini</VSTestBlameHangDumpType>
+  </PropertyGroup>
+</Project>

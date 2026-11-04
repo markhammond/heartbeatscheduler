@@ -1,0 +1,55 @@
+#nullable enable
+HeartbeatScheduling.HeartbeatIdlePolicy
+HeartbeatScheduling.HeartbeatIdlePolicy.BusySpin = 1 -> HeartbeatScheduling.HeartbeatIdlePolicy
+HeartbeatScheduling.HeartbeatIdlePolicy.SpinThenPark = 0 -> HeartbeatScheduling.HeartbeatIdlePolicy
+HeartbeatScheduling.HeartbeatOptions
+HeartbeatScheduling.HeartbeatOptions.<Clone>$() -> HeartbeatScheduling.HeartbeatOptions!
+HeartbeatScheduling.HeartbeatOptions.Equals(HeartbeatScheduling.HeartbeatOptions? other) -> bool
+HeartbeatScheduling.HeartbeatOptions.HeartbeatMicroseconds.get -> double
+HeartbeatScheduling.HeartbeatOptions.HeartbeatMicroseconds.init -> void
+HeartbeatScheduling.HeartbeatOptions.HeartbeatOptions() -> void
+HeartbeatScheduling.HeartbeatOptions.IdlePolicy.get -> HeartbeatScheduling.HeartbeatIdlePolicy
+HeartbeatScheduling.HeartbeatOptions.IdlePolicy.init -> void
+HeartbeatScheduling.HeartbeatOptions.MinChunk.get -> int
+HeartbeatScheduling.HeartbeatOptions.MinChunk.init -> void
+HeartbeatScheduling.HeartbeatOptions.SpinBeforeParkMicroseconds.get -> double
+HeartbeatScheduling.HeartbeatOptions.SpinBeforeParkMicroseconds.init -> void
+HeartbeatScheduling.HeartbeatOptions.StartWorker.get -> System.Action<int, System.Action!>?
+HeartbeatScheduling.HeartbeatOptions.StartWorker.init -> void
+HeartbeatScheduling.HeartbeatOptions.Workers.get -> int
+HeartbeatScheduling.HeartbeatOptions.Workers.init -> void
+HeartbeatScheduling.HeartbeatScheduler
+HeartbeatScheduling.HeartbeatScheduler.Dispose() -> void
+HeartbeatScheduling.HeartbeatScheduler.For(int start, int end, HeartbeatScheduling.IHeartbeatBatchLoop! loop, int batch) -> void
+HeartbeatScheduling.HeartbeatScheduler.For(int start, int end, HeartbeatScheduling.IHeartbeatBatchLoop! loop, int batch, System.TimeSpan estimatedIterationCost) -> void
+HeartbeatScheduling.HeartbeatScheduler.For(int start, int end, HeartbeatScheduling.IHeartbeatLoop! loop) -> void
+HeartbeatScheduling.HeartbeatScheduler.For(int start, int end, HeartbeatScheduling.IHeartbeatLoop! loop, System.TimeSpan estimatedIterationCost) -> void
+HeartbeatScheduling.HeartbeatScheduler.For<TLoop>(int start, int end, in TLoop loop) -> void
+HeartbeatScheduling.HeartbeatScheduler.For<TLoop>(int start, int end, in TLoop loop, System.TimeSpan estimatedIterationCost) -> void
+HeartbeatScheduling.HeartbeatScheduler.For<TLoop>(int start, int end, in TLoop loop, int batch) -> void
+HeartbeatScheduling.HeartbeatScheduler.For<TLoop>(int start, int end, in TLoop loop, int batch, System.TimeSpan estimatedIterationCost) -> void
+HeartbeatScheduling.HeartbeatScheduler.ForMicroseconds(int start, int end, HeartbeatScheduling.IHeartbeatBatchLoop! loop, int batch, double estimatedMicrosecondsPerIteration) -> void
+HeartbeatScheduling.HeartbeatScheduler.ForMicroseconds(int start, int end, HeartbeatScheduling.IHeartbeatLoop! loop, double estimatedMicrosecondsPerIteration) -> void
+HeartbeatScheduling.HeartbeatScheduler.ForMicroseconds<TLoop>(int start, int end, in TLoop loop, double estimatedMicrosecondsPerIteration) -> void
+HeartbeatScheduling.HeartbeatScheduler.ForMicroseconds<TLoop>(int start, int end, in TLoop loop, int batch, double estimatedMicrosecondsPerIteration) -> void
+HeartbeatScheduling.HeartbeatScheduler.HeartbeatScheduler(HeartbeatScheduling.HeartbeatOptions? options = null) -> void
+HeartbeatScheduling.HeartbeatScheduler.Options.get -> HeartbeatScheduling.HeartbeatOptions!
+HeartbeatScheduling.HeartbeatScheduler.Splits.get -> long
+HeartbeatScheduling.HeartbeatScheduler.Workers.get -> int
+HeartbeatScheduling.HeartbeatThreadQuality
+HeartbeatScheduling.HeartbeatThreadQuality.Default = 0 -> HeartbeatScheduling.HeartbeatThreadQuality
+HeartbeatScheduling.HeartbeatThreadQuality.High = 1 -> HeartbeatScheduling.HeartbeatThreadQuality
+HeartbeatScheduling.HeartbeatThreads
+HeartbeatScheduling.IHeartbeatBatchLoop
+HeartbeatScheduling.IHeartbeatBatchLoop.CallerRangeDone() -> void
+HeartbeatScheduling.IHeartbeatBatchLoop.Execute(int start, int end, int worker) -> void
+HeartbeatScheduling.IHeartbeatLoop
+HeartbeatScheduling.IHeartbeatLoop.CallerRangeDone() -> void
+HeartbeatScheduling.IHeartbeatLoop.Execute(int index, int worker) -> void
+override HeartbeatScheduling.HeartbeatOptions.Equals(object? obj) -> bool
+override HeartbeatScheduling.HeartbeatOptions.GetHashCode() -> int
+override HeartbeatScheduling.HeartbeatOptions.ToString() -> string!
+static HeartbeatScheduling.HeartbeatOptions.operator !=(HeartbeatScheduling.HeartbeatOptions? left, HeartbeatScheduling.HeartbeatOptions? right) -> bool
+static HeartbeatScheduling.HeartbeatOptions.operator ==(HeartbeatScheduling.HeartbeatOptions? left, HeartbeatScheduling.HeartbeatOptions? right) -> bool
+static HeartbeatScheduling.HeartbeatThreads.Background(string! namePrefix = "Heartbeat", HeartbeatScheduling.HeartbeatThreadQuality quality = HeartbeatScheduling.HeartbeatThreadQuality.Default) -> System.Action<int, System.Action!>!
+static HeartbeatScheduling.HeartbeatThreads.SetCurrentQuality(HeartbeatScheduling.HeartbeatThreadQuality quality) -> bool

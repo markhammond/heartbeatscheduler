@@ -1,0 +1,9 @@
+<Project>
+  <!-- Public API baseline for every shipped library (RS0016/RS0017 become build errors via TreatWarningsAsErrors).
+       New or changed API goes to PublicAPI.Unshipped.txt; on release, move its lines to PublicAPI.Shipped.txt. -->
+  <ItemGroup Condition="'$(IsRoslynComponent)' != 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+</Project>

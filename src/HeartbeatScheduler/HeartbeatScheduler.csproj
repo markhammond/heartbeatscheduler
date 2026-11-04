@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>HeartbeatScheduling</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>HeartbeatScheduler</PackageId>
+    <Description>Heartbeat scheduling for micro-task parallel loops: sequential by default, each thread splitting off half of its remaining work for an idle worker at most once per heartbeat, so per-task overhead stays a bounded fraction of run time even for nanosecond-scale iterations. Allocation-free per loop.</Description>
+    <PackageTags>heartbeat-scheduling;heartbeat;parallel;parallel-for;fork-join;work-splitting;scheduling;low-latency;zero-allocation</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HeartbeatScheduler.Tests" />
+    <InternalsVisibleTo Include="HeartbeatScheduler.Bench" />
+  </ItemGroup>
+</Project>

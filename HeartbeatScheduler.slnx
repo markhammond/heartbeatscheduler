@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/HeartbeatScheduler/HeartbeatScheduler.csproj" />
+  <Project Path="tests/HeartbeatScheduler.Tests/HeartbeatScheduler.Tests.csproj" />
+  <Project Path="bench/HeartbeatScheduler.Bench/HeartbeatScheduler.Bench.csproj" />
+</Solution>
