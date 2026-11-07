@@ -219,6 +219,14 @@ public sealed class HeartbeatScheduler : IDisposable
 
     private const int NoBeater = -1;
 
+    /// <summary>A lane's split count, alone on its cache lines: written by the lane's own thread only, so splitting takes
+    /// no atomic and no thread writes a line another one does.</summary>
+    [StructLayout(LayoutKind.Explicit, Size = 3 * CacheLine)]
+    internal struct SplitCount
+    {
+        [FieldOffset(CacheLine)] public long Value;
+    }
+
     /// <summary>An idle thread's beat duty across its passes.</summary>
     private struct IdleClock
     {
@@ -249,7 +257,7 @@ public sealed class HeartbeatScheduler : IDisposable
     private int _pending;                         // offered ranges not yet completed
     private int _parked;
     private int _idleLanes;                       // lanes idle in a running loop: estimate-driven splits need one
-    private long _splits;
+    private readonly SplitCount[] _splits;        // per lane, summed by Splits
     private Runner? _runner;
     private Runner? _lastRunner;
     private Dictionary<Type, Runner>? _runners;
@@ -283,6 +291,7 @@ public sealed class HeartbeatScheduler : IDisposable
         _stealAfterPasses = StealAfter(150);
         _workers = _options.Workers;
         _lanes = new Lane[_workers + 1];
+        _splits = new SplitCount[_workers + 1];
         var start = _options.StartWorker ?? HeartbeatThreads.Background();
         try
         {
@@ -418,8 +427,17 @@ public sealed class HeartbeatScheduler : IDisposable
     /// <summary>Worker threads; lanes passed to <see cref="IHeartbeatLoop.Execute"/> are 0..Workers.</summary>
     public int Workers => _workers;
 
-    /// <summary>Ranges handed to other threads so far (diagnostics).</summary>
-    public long Splits => Interlocked.Read(ref _splits);
+    /// <summary>Ranges handed to other threads so far (diagnostics): exact on the calling thread once <c>For</c> returns,
+    /// approximate while a loop runs. Counted per lane and summed here, so splitting costs no shared write.</summary>
+    public long Splits
+    {
+        get
+        {
+            long total = 0;
+            for (var k = 0; k < _splits.Length; k++) total += Volatile.Read(ref _splits[k].Value);
+            return total;
+        }
+    }
 
     /// <summary>The scheduler's configuration.</summary>
     public HeartbeatOptions Options => _options;
@@ -807,7 +825,7 @@ public sealed class HeartbeatScheduler : IDisposable
         while ((long)end - i >= minSplit && (long)end - i > eager)   // up-front splits
         {
             var mid = Mid(i, end, batch);
-            if (!TryOffer(mid, end)) break;
+            if (!TryOffer(lane, mid, end)) break;
             end = mid;
         }
         var seen = Volatile.Read(ref _clock.Beat);               // a range starts on the current beat: one split per beat seen
@@ -822,7 +840,7 @@ public sealed class HeartbeatScheduler : IDisposable
                     if (Volatile.Read(ref _fault) is not null) break;   // another thread failed: abandon the rest
                     seen = beat;
                     var mid = Mid(i, end, batch);
-                    if (TryOffer(mid, end)) end = mid;
+                    if (TryOffer(lane, mid, end)) end = mid;
                 }
             }
             if (!T.Batched) body.Execute(i++, lane);
@@ -845,15 +863,25 @@ public sealed class HeartbeatScheduler : IDisposable
 
     // ------------------------------------------------------------------------------------------------ hand-offs
 
-    /// <summary>Offers [<paramref name="lo"/>, <paramref name="hi"/>) to an idle lane: the beater last, as each clock
-    /// read leaves its mailbox unwatched (for a microsecond or more on a slow clock).</summary>
-    internal bool TryOffer(int lo, int hi)
+    /// <summary>Lane <paramref name="from"/> (the calling thread's) offers [<paramref name="lo"/>, <paramref name="hi"/>)
+    /// to an idle lane: the beater last, as each clock read leaves its mailbox unwatched (for a microsecond or more on a
+    /// slow clock).</summary>
+    internal bool TryOffer(int from, int lo, int hi)
     {
         var m = ((long)lo << 32) | (uint)(hi - lo);     // hi > lo: never 0 (empty) nor Busy (length 0)
         var beater = Volatile.Read(ref _beater.Holder);
-        for (var k = 0; k < _lanes.Length; k++)
-            if (k != beater && TryOfferTo(k, m)) return true;
-        return beater >= 0 && beater < _lanes.Length && TryOfferTo(beater, m);
+        var offered = false;
+        for (var k = 0; k < _lanes.Length && !offered; k++)
+            offered = k != beater && TryOfferTo(k, m);
+        if (!offered) offered = beater >= 0 && beater < _lanes.Length && TryOfferTo(beater, m);
+        if (offered)
+        {
+            // The lane's own thread is the only writer, and a 64-bit store is atomic: no interlocked add. The join's
+            // full fence publishes it with the range's writes.
+            ref var splits = ref _splits[from].Value;
+            splits++;
+        }
+        return offered;
     }
 
     private bool TryOfferTo(int k, long m)
@@ -871,7 +899,6 @@ public sealed class HeartbeatScheduler : IDisposable
             Interlocked.Decrement(ref _pending);              // retracted: the thread was leaving
             return false;
         }
-        Interlocked.Increment(ref _splits);
         return true;
     }
 

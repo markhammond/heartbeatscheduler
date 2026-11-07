@@ -417,6 +417,7 @@ public class SchedulerTests
         Isolated<HeartbeatScheduler.Lane>(nameof(HeartbeatScheduler.Lane.Idle), 4);
         Isolated<HeartbeatScheduler.Clock>(nameof(HeartbeatScheduler.Clock.Beat), 8);
         Isolated<HeartbeatScheduler.Clock>(nameof(HeartbeatScheduler.Clock.LastBeat), 8);
+        Isolated<HeartbeatScheduler.SplitCount>(nameof(HeartbeatScheduler.SplitCount.Value), 8);
     }
 
     // ------------------------------------------------------------------------------------- the busy mailbox
@@ -426,15 +427,15 @@ public class SchedulerTests
     {
         using var s = new HeartbeatScheduler(new HeartbeatOptions { Workers = 0 });   // lane 0 alone: no thread races us
         s.SetIdle(0, true);
-        Assert.True(s.TryOffer(10, 20));
+        Assert.True(s.TryOffer(0, 10, 20));
         Assert.True(s.TryTake(0, out var lo, out var hi));
         Assert.Equal((10, 20), (lo, hi));
         // An offerer could once see a lane that had just claimed a range as still idle; its offer then waited in the
         // mailbox behind the range the lane was running. A claimed mailbox stays busy, so the offer goes elsewhere.
         s.SetIdle(0, true);
-        Assert.False(s.TryOffer(30, 40));
+        Assert.False(s.TryOffer(0, 30, 40));
         s.Finish(0);
-        Assert.True(s.TryOffer(30, 40));                          // open again once the range is done
+        Assert.True(s.TryOffer(0, 30, 40));                       // open again once the range is done
         Assert.True(s.TryTake(0, out lo, out hi));
         Assert.Equal((30, 40), (lo, hi));
         s.Finish(0);
