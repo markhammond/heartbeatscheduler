@@ -175,7 +175,10 @@ public interface IHeartbeatBatchLoop
 /// the caller when <c>For</c> returns. The first exception from any thread is rethrown after the join; the other
 /// threads abandon the rest of their ranges at their next beat.</item>
 /// </list>
-/// One loop at a time: <c>For</c> must not be called concurrently or from inside a loop body.
+/// One loop at a time: <c>For</c> must not be called concurrently or from inside a loop body. Debug builds check this
+/// and throw <see cref="InvalidOperationException"/>, as does any build compiled with the <c>HEARTBEAT_REENTRANCY_GUARD</c>
+/// symbol (<c>-p:HeartbeatReentrancyGuard=true</c>); other release builds do not (the check is an atomic per loop), and a
+/// loop started anyway corrupts the one running.
 /// </summary>
 public sealed class HeartbeatScheduler : IDisposable
 {
@@ -239,7 +242,9 @@ public sealed class HeartbeatScheduler : IDisposable
     private BeaterSlot _beater = new() { Holder = NoBeater };
     private int _stealAfterPasses;               // a watcher takes over the beat after this many passes without one
     private volatile bool _stopping;
-    private int _running;                         // 1 while a loop runs (reentrancy guard)
+#if DEBUG || HEARTBEAT_REENTRANCY_GUARD
+    private int _running;                         // 1 while a loop runs (reentrancy guard: debug builds, or HeartbeatReentrancyGuard)
+#endif
     private int _phase;                           // 1 while a loop runs (workers spin, beat, take ranges)
     private int _pending;                         // offered ranges not yet completed
     private int _parked;
@@ -693,8 +698,10 @@ public sealed class HeartbeatScheduler : IDisposable
             body.CallerRangeDone();
             return;
         }
+#if DEBUG || HEARTBEAT_REENTRANCY_GUARD
         if (Interlocked.Exchange(ref _running, 1) != 0)
             throw new InvalidOperationException("HeartbeatScheduler runs one loop at a time: For was called concurrently or from inside a loop body.");
+#endif
         try
         {
             // Not enough slack to split: with no workers, or an estimate predicting less than a heartbeat of work (no
@@ -737,7 +744,9 @@ public sealed class HeartbeatScheduler : IDisposable
         {
             if (_runner is Runner<T> r) r.Body = default;        // drop the body's references
             _runner = null;
+#if DEBUG || HEARTBEAT_REENTRANCY_GUARD
             Volatile.Write(ref _running, 0);
+#endif
         }
     }
 

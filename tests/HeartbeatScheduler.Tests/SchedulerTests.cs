@@ -158,8 +158,9 @@ public class SchedulerTests
         }
     }
 
+#if DEBUG || HEARTBEAT_REENTRANCY_GUARD
     [Fact]
-    public async Task NestedOrConcurrentLoops_AreRejected()
+    public async Task NestedOrConcurrentLoops_AreRejected_WhenTheGuardIsCompiledIn()
     {
         using var s = new HeartbeatScheduler(Aggressive);
         var ex = Assert.Throws<InvalidOperationException>(() => s.For(0, 100, new Nested(s)));
@@ -173,6 +174,7 @@ public class SchedulerTests
         gate.Set();
         await first;
     }
+#endif
 
     [Fact]
     public void ParkedWorkers_WakeForTheNextLoop()
