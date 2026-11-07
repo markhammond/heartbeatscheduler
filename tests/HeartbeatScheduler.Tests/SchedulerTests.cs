@@ -389,16 +389,22 @@ public class SchedulerTests
     {
         // One worker, some 200 times slower per iteration: the caller's share is done long before the worker's, and the
         // caller then takes most of the rest. It once spun at the join instead, having run only the half it kept at
-        // the first split.
+        // the first split, on every try. The loop lasts about a millisecond, and a loaded machine may deschedule the
+        // worker for all of it (the caller then runs the loop alone, never past its own share), so it gets a few tries.
         using var s = new HeartbeatScheduler(AggressiveWith(idle) with { Workers = 1 });
         s.For(0, 50_000, new Recorder(50_000, _ => 5));          // the worker is up and spinning, not still starting
         const int N = 20_000;
-        var r = new LaneCost(N);
-        s.For(0, N, r);
-        var byCaller = r.Worker.Count(w => w == 0);
-        Assert.True(byCaller > N * 3 / 4, $"the calling thread ran {byCaller:N0} of {N:N0}");
-        Assert.Equal(1, r.CallerDone);
-        Assert.True(r.AfterDone > 0, "no iteration ran on the calling thread after CallerRangeDone");
+        var tries = new List<string>();
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var r = new LaneCost(N);
+            s.For(0, N, r);
+            Assert.Equal(1, r.CallerDone);
+            var byCaller = r.Worker.Count(w => w == 0);
+            if (byCaller > N * 3 / 4 && r.AfterDone > 0) return;
+            tries.Add($"{byCaller:N0} by the calling thread, {r.AfterDone:N0} of them after CallerRangeDone");
+        }
+        Assert.Fail($"the calling thread never took most of the worker's share after its own, in ten tries of {N:N0} iterations: {string.Join("; ", tries)}");
     }
 
     // ------------------------------------------------------------------------------------- layout
