@@ -98,7 +98,7 @@ dotnet run -c Release --project bench/HeartbeatScheduler.Bench
 
 ## Credits
 
-Based on the heartbeat scheduling technique of Acar et al. (PLDI 2018), for flat loops: one loop at a time per scheduler, and a loop body must not start another.
+Based on the heartbeat scheduling technique of Acar et al. (PLDI 2018), for flat loops: one loop at a time per scheduler, and a loop body must not start another (checked in debug builds, or in any build with `-p:HeartbeatReentrancyGuard=true`).
 
 ## License
 

@@ -20,6 +20,10 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
+  <!-- -p:HeartbeatReentrancyGuard=true compiles the re-entrancy check (one loop at a time) into any configuration (debug builds always have it). -->
+  <PropertyGroup Condition="'$(HeartbeatReentrancyGuard)' == 'true'">
+    <DefineConstants>$(DefineConstants);HEARTBEAT_REENTRANCY_GUARD</DefineConstants>
+  </PropertyGroup>
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>

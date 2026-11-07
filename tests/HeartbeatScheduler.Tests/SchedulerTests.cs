@@ -158,8 +158,9 @@ public class SchedulerTests
         }
     }
 
+#if DEBUG || HEARTBEAT_REENTRANCY_GUARD
     [Fact]
-    public async Task NestedOrConcurrentLoops_AreRejected()
+    public async Task NestedOrConcurrentLoops_AreRejected_WhenTheGuardIsCompiledIn()
     {
         using var s = new HeartbeatScheduler(Aggressive);
         var ex = Assert.Throws<InvalidOperationException>(() => s.For(0, 100, new Nested(s)));
@@ -173,6 +174,7 @@ public class SchedulerTests
         gate.Set();
         await first;
     }
+#endif
 
     [Fact]
     public void ParkedWorkers_WakeForTheNextLoop()
@@ -387,16 +389,22 @@ public class SchedulerTests
     {
         // One worker, some 200 times slower per iteration: the caller's share is done long before the worker's, and the
         // caller then takes most of the rest. It once spun at the join instead, having run only the half it kept at
-        // the first split.
+        // the first split, on every try. The loop lasts about a millisecond, and a loaded machine may deschedule the
+        // worker for all of it (the caller then runs the loop alone, never past its own share), so it gets a few tries.
         using var s = new HeartbeatScheduler(AggressiveWith(idle) with { Workers = 1 });
         s.For(0, 50_000, new Recorder(50_000, _ => 5));          // the worker is up and spinning, not still starting
         const int N = 20_000;
-        var r = new LaneCost(N);
-        s.For(0, N, r);
-        var byCaller = r.Worker.Count(w => w == 0);
-        Assert.True(byCaller > N * 3 / 4, $"the calling thread ran {byCaller:N0} of {N:N0}");
-        Assert.Equal(1, r.CallerDone);
-        Assert.True(r.AfterDone > 0, "no iteration ran on the calling thread after CallerRangeDone");
+        var tries = new List<string>();
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var r = new LaneCost(N);
+            s.For(0, N, r);
+            Assert.Equal(1, r.CallerDone);
+            var byCaller = r.Worker.Count(w => w == 0);
+            if (byCaller > N * 3 / 4 && r.AfterDone > 0) return;
+            tries.Add($"{byCaller:N0} by the calling thread, {r.AfterDone:N0} of them after CallerRangeDone");
+        }
+        Assert.Fail($"the calling thread never took most of the worker's share after its own, in ten tries of {N:N0} iterations: {string.Join("; ", tries)}");
     }
 
     // ------------------------------------------------------------------------------------- layout
@@ -415,6 +423,7 @@ public class SchedulerTests
         Isolated<HeartbeatScheduler.Lane>(nameof(HeartbeatScheduler.Lane.Idle), 4);
         Isolated<HeartbeatScheduler.Clock>(nameof(HeartbeatScheduler.Clock.Beat), 8);
         Isolated<HeartbeatScheduler.Clock>(nameof(HeartbeatScheduler.Clock.LastBeat), 8);
+        Isolated<HeartbeatScheduler.SplitCount>(nameof(HeartbeatScheduler.SplitCount.Value), 8);
     }
 
     // ------------------------------------------------------------------------------------- the busy mailbox
@@ -424,15 +433,15 @@ public class SchedulerTests
     {
         using var s = new HeartbeatScheduler(new HeartbeatOptions { Workers = 0 });   // lane 0 alone: no thread races us
         s.SetIdle(0, true);
-        Assert.True(s.TryOffer(10, 20));
+        Assert.True(s.TryOffer(0, 10, 20));
         Assert.True(s.TryTake(0, out var lo, out var hi));
         Assert.Equal((10, 20), (lo, hi));
         // An offerer could once see a lane that had just claimed a range as still idle; its offer then waited in the
         // mailbox behind the range the lane was running. A claimed mailbox stays busy, so the offer goes elsewhere.
         s.SetIdle(0, true);
-        Assert.False(s.TryOffer(30, 40));
+        Assert.False(s.TryOffer(0, 30, 40));
         s.Finish(0);
-        Assert.True(s.TryOffer(30, 40));                          // open again once the range is done
+        Assert.True(s.TryOffer(0, 30, 40));                       // open again once the range is done
         Assert.True(s.TryTake(0, out lo, out hi));
         Assert.Equal((30, 40), (lo, hi));
         s.Finish(0);
